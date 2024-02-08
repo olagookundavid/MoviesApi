@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/olagookundavid/movie-api/internal/data"
 	"github.com/olagookundavid/movie-api/internal/validator"
 )
 
@@ -117,31 +116,22 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Title  string
-		Genres []string
-		data.Filters
-	}
-	v := validator.New()
-	qs := r.URL.Query()
-	input.Title = app.readString(qs, "title", "")
-	input.Genres = app.readCSV(qs, "genres", []string{})
-	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
-	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
-	if data.ValidateFilters(v, input.Filters); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
-		return
-	}
-	movies, metadata, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies, "metadata": metadata}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+func (app *application) background(fn func()) {
+	// Increment the WaitGroup counter.
+	app.wg.Add(1)
+
+	// Launch a background goroutine.
+	go func() {
+		// Use defer to decrement the WaitGroup counter before the goroutine returns.
+		defer app.wg.Done()
+
+		// Recover any panic.
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+		// Execute the arbitrary function that we passed as the parameter.
+		fn()
+	}()
 }
