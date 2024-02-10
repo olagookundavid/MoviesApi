@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	golang.org/x/crypto v0.18.0
 	golang.org/x/time v0.5.0
 	gopkg.in/mail.v2 v2.3.1

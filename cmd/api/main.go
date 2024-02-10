@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -21,10 +22,13 @@ import (
 	"github.com/olagookundavid/movie-api/internal/data"
 	"github.com/olagookundavid/movie-api/internal/jsonlog"
 	"github.com/olagookundavid/movie-api/internal/mailer"
+	"github.com/olagookundavid/movie-api/internal/vcs"
 )
 
 // Declare a string containing the application version number. Later in the book we'll // generate this automatically at build time, but for now we'll just store the version // number as a hard-coded global constant.
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 // Define a config struct to hold all the configuration settings for our application. // For now, the only configuration settings will be the network port that we want the // server to listen on, and the name of the current operating environment for the // application (development, staging, production, etc.). We will read in these // configuration settings from command-line flags when the application starts.
 type config struct {
@@ -91,7 +95,13 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
 	})
+	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
+	// If the version flag value is true, then print out the version number and immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 	db, err := openDB(cfg)
@@ -150,6 +160,7 @@ func openDB(cfg config) (*sql.DB, error) {
 }
 
 /*
+echo 'bin/' >> .gitignore put bin in gitignore
 goose postgres postgres://greenlight:greenlight@localhost/greenlight up
 can omit struct fields in json response completely or if zero pg 50
 
