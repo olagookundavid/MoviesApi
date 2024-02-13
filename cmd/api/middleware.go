@@ -54,6 +54,8 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer next.ServeHTTP(w, r)
+
 		if app.config.limiter.enabled {
 			ip := realip.FromRequest(r)
 			mu.Lock()
@@ -71,9 +73,8 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 				return
 			}
 			mu.Unlock()
-			next.ServeHTTP(w, r)
+			return
 		}
-		next.ServeHTTP(w, r)
 	})
 }
 
