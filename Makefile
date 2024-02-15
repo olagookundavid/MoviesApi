@@ -26,7 +26,7 @@ run/api:
 .PHONY: db/psql
 db/psql:
 	@echo 'connecting to db'
-	docker exec -it some-postgres bash
+	docker exec -it post-db bash
 	psql postgres://greenlight:greenlight@localhost/greenlight?sslmode=disable
  
 ## db/migrate/up: apply all up database migrations
