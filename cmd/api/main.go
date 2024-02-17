@@ -55,6 +55,9 @@ type config struct {
 	cors struct {
 		trustedOrigins []string
 	}
+	jwt struct {
+		secret string
+	}
 }
 
 type application struct {
@@ -72,8 +75,12 @@ func main() {
 	if dbUrl == "" {
 		log.Fatal("DB_URL env variable missing")
 	}
+	jwtKey := os.Getenv("JWT_SECRET")
+	if jwtKey == "" {
+		log.Fatal("JWT_SECRET env variable missing")
+	}
 	//env and port
-	flag.IntVar(&cfg.port, "port", 8000, "API server port")
+	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	//db
 	flag.StringVar(&cfg.db.dsn, "db-dsn", dbUrl, "PostgreSQL DSN")
@@ -90,6 +97,8 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-username", "eff608bdd9a4ff", "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "e3d9c7596dda6a", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.goliath.net>", "SMTP sender")
+	//jwt
+	flag.StringVar(&cfg.jwt.secret, "jwt-secret", jwtKey, "JWT secret")
 	//cors
 	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
 		cfg.cors.trustedOrigins = strings.Fields(val)
@@ -124,6 +133,7 @@ func main() {
 		return time.Now().Unix()
 	}))
 	app := &application{
+		wg:     sync.WaitGroup{},
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
@@ -160,7 +170,7 @@ func openDB(cfg config) (*sql.DB, error) {
 }
 
 /*
-echo 'bin/' >> .gitignore put bin in gitignore
+'echo 'bin/' >> .gitignore' put bin in gitignore
 goose postgres postgres://greenlight:greenlight@localhost/greenlight up
 can omit struct fields in json response completely or if zero pg 50
 
@@ -173,7 +183,6 @@ custom formatting for json if you need it for a field: pg61 and inv pg95
 
 db setup: pg105,108 pg cmds
 postgres://greenlight:greenlight@localhost/greenlight
-
 
 
 //for permission error

@@ -34,13 +34,7 @@ db/psql:
 db/migrate/up:
 	@echo 'Running up migrations...' 
 	goose postgres postgres://greenlight:greenlight@localhost/greenlight up
-
-## db/migrate/down: apply all down database migrations
-.PHONY: db/migrate/down
-db/migrate/down:
-	@echo 'Running down migrations...'
-	goose postgres postgres://greenlight:greenlight@localhost/greenlight down
-
+	
 # ==================================================================================== # 
 # QUALITY CONTROL 
 # ==================================================================================== # 

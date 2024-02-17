@@ -1,4 +1,4 @@
-FROM golang:1.21 AS builder
+FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
 
@@ -6,18 +6,19 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 RUN go mod tidy && \
-    go mod verify && \
-    go mod download
+    go mod verify
 
 COPY . .
 
 
-RUN go build -o ./bin/api ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o api ./cmd/api
 
-FROM golang:1.21
+FROM alpine:edge
 
-WORKDIR /app
+COPY --from=builder /app/api api
+COPY --from=builder /app/.env .env
 
-COPY --from=builder /app/bin/api .
+EXPOSE 5132
 
 CMD ["./api"]
+
